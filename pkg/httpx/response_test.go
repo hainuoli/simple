@@ -2,8 +2,11 @@ package httpx
 
 import (
 	"encoding/json"
+	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"simple/pkg/errorx"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -30,15 +33,52 @@ func TestOkNilData(t *testing.T) {
 	require.JSONEq(t, `{"code":0,"msg":"ok"}`, r.Body.String())
 }
 
-func TestErr(t *testing.T) {
-	r := httptest.NewRecorder()
+func TestErrBusinessError(t *testing.T) {
+	recorder := httptest.NewRecorder()
 
-	Err(r, http.StatusUnprocessableEntity, 1001, "invalid input")
+	// Err must see through wrapping, which is how logic usually propagates.
+	Err(recorder, fmt.Errorf("create user: %w", errorx.NotFound("user not found")))
 
-	requireResponse(t, r, http.StatusUnprocessableEntity, Body{
-		Code: 1001,
-		Msg:  "invalid input",
-	})
+	require.Equal(t, http.StatusNotFound, recorder.Code)
+	require.Equal(t, "application/json; charset=utf-8", recorder.Header().Get("Content-Type"))
+	require.JSONEq(t, `{"code":40400,"msg":"user not found"}`, recorder.Body.String())
+}
+
+func TestErrCustomStatus(t *testing.T) {
+	recorder := httptest.NewRecorder()
+
+	Err(recorder, errorx.NewError(http.StatusUnprocessableEntity, 1001, "invalid input"))
+
+	require.Equal(t, http.StatusUnprocessableEntity, recorder.Code)
+	require.JSONEq(t, `{"code":1001,"msg":"invalid input"}`, recorder.Body.String())
+}
+
+func TestErrUnknownErrorDoesNotLeak(t *testing.T) {
+	recorder := httptest.NewRecorder()
+
+	Err(recorder, errors.New("dial tcp 127.0.0.1:5432: connection refused"))
+
+	require.Equal(t, http.StatusInternalServerError, recorder.Code)
+	require.JSONEq(t, `{"code":50000,"msg":"internal server error"}`, recorder.Body.String())
+	require.NotContains(t, recorder.Body.String(), "5432")
+}
+
+func TestErrInternalError(t *testing.T) {
+	recorder := httptest.NewRecorder()
+
+	Err(recorder, errorx.Internal(errors.New("boom")))
+
+	require.Equal(t, http.StatusInternalServerError, recorder.Code)
+	require.JSONEq(t, `{"code":50000,"msg":"internal server error"}`, recorder.Body.String())
+}
+
+func TestErrNil(t *testing.T) {
+	recorder := httptest.NewRecorder()
+
+	Err(recorder, nil)
+
+	require.Equal(t, http.StatusInternalServerError, recorder.Code)
+	require.JSONEq(t, `{"code":50000,"msg":"internal server error"}`, recorder.Body.String())
 }
 
 func TestJSON(t *testing.T) {
