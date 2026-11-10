@@ -17,3 +17,10 @@ coverage.out
 .env
 .env.*
 !.env.example
+
+# Local runtime data (docker compose bind mounts)
+/data/
+/logs/
+
+# Generated production runtime directory (contains .env and database data)
+/deploy/
