@@ -55,8 +55,8 @@ func TestRecover(t *testing.T) {
 			})
 
 			require.Equal(t, http.StatusInternalServerError, recorder.Code)
-			require.Equal(t, "internal server error\n", recorder.Body.String())
-			require.Equal(t, "text/plain; charset=utf-8", recorder.Header().Get("Content-Type"))
+			require.Equal(t, "application/json; charset=utf-8", recorder.Header().Get("Content-Type"))
+			require.JSONEq(t, `{"code":50000,"msg":"internal server error"}`, recorder.Body.String())
 
 			entry := decodeLog(t, logs)
 			require.Equal(t, "ERROR", entry["level"])

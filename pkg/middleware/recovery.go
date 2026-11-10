@@ -4,6 +4,9 @@ import (
 	"log/slog"
 	"net/http"
 	"runtime/debug"
+
+	"simple/pkg/errorx"
+	"simple/pkg/httpx"
 )
 
 func Recover(next http.Handler) http.Handler {
@@ -14,7 +17,7 @@ func Recover(next http.Handler) http.Handler {
 					"err", err,
 					"stack", string(debug.Stack()),
 				)
-				http.Error(w, "internal server error", http.StatusInternalServerError)
+				httpx.Err(w, errorx.NewError(http.StatusInternalServerError, errorx.CodeInternal, "internal server error"))
 			}
 		}()
 		next.ServeHTTP(w, r)
