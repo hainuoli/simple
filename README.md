@@ -31,9 +31,10 @@
 - [errorx 业务错误](docs/errorx.md)
 - [httpx 请求与响应](docs/httpx.md)
 - [stores/sqlx 数据访问层](docs/sqlx.md)
+- [stores/redisx Redis 与类型化缓存](docs/redisx.md)
 
 ### 说明
 
 当前业务数据使用内存仓库；仓库通过 `repo.UserRepo` 接口注入，替换为 sqlx 或 gorm
 实现时只需修改 `svc.New` 的组装代码，业务代码不需要改动。`pkg/stores/sqlx` 已提供数据库访问基础能力，
-但应用代码尚未接入数据库和缓存。
+`pkg/stores/redisx` 已提供 Redis 连接与类型化缓存能力，但应用代码尚未接入数据库和缓存。
