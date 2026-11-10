@@ -1,0 +1,27 @@
+# Version control and local tooling
+.git
+.gitignore
+.github
+.cursor
+.idea
+.vscode
+
+# Local artifacts
+.tmp
+data
+logs
+deploy
+coverage.out
+coverage.txt
+*.test
+
+# Files not needed to build the binary
+.env
+.env.*
+!.env.example
+Dockerfile
+docker-compose.yml
+docs
+mcp
+scripts
+README.md

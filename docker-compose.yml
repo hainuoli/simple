@@ -1,0 +1,102 @@
+name: simple-dev
+
+services:
+  simple:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: simple:latest
+    restart: unless-stopped
+    stop_grace_period: 15s
+
+    environment:
+      APP_ENV: ${APP_ENV:-prod}
+      # Bind to all interfaces inside the container; the port mapping below
+      # controls exposure on the host.
+      HTTP_ADDR: ":8888"
+
+    ports:
+      - "${HTTP_PORT:-8888}:8888"
+
+  # ---- Optional infrastructure -------------------------------------------------
+  # Enabled on demand:
+  #   docker compose --profile mysql up -d
+  #   docker compose --profile postgres up -d
+  #   docker compose --profile redis up -d
+
+  mysql:
+    profiles: ["mysql"]
+    image: mysql:8.4
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-simple-root}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-simple}
+      MYSQL_USER: ${MYSQL_USER:-simple}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-simple}
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_0900_ai_ci
+    ports:
+      - "${MYSQL_PORT:-3306}:3306"
+    volumes:
+      - ./data/mysql:/var/lib/mysql
+      - ./scripts/sql:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u$$MYSQL_USER -p$$MYSQL_PASSWORD --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  postgres:
+    profiles: ["postgres"]
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-simple}
+      POSTGRES_USER: ${POSTGRES_USER:-simple}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-simple}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - ./data/postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  redis:
+    profiles: ["redis"]
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - ./data/redis:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  # ---- Reverse proxy -----------------------------------------------------------
+  # Starts by default and waits for the API to report healthy.
+  nginx:
+    image: nginx:1.27-alpine
+    restart: unless-stopped
+    depends_on:
+      simple:
+        condition: service_healthy
+    ports:
+      - "${NGINX_PORT:-8080}:80"
+    volumes:
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1/api/v1/ping >/dev/null 2>&1 || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
