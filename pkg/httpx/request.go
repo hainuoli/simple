@@ -1,3 +1,9 @@
+// Package httpx binds HTTP requests into tagged structs and writes the shared
+// JSON response envelope.
+//
+// Parsing is explicit: a field is only filled when it carries the tag for that
+// source. Responses never expose internal errors; mapping from business errors
+// is delegated to pkg/errorx.
 package httpx
 
 import (
