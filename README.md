@@ -1,6 +1,6 @@
-<p align="center">
-    <strong>Hi~</strong>
-</p>
+<h1 align="center">Simple</h1>
+
+<p align="center"><strong>Everything is simple.</strong></p>
 
 ### 快速开始
 
@@ -21,8 +21,12 @@
 ./scripts/shell/start-prod.sh
 ```
 
-部署完成后，日常运维使用 `deploy/start.sh`、`deploy/stop.sh`、`deploy/restart.sh`、
-`deploy/status.sh` 和 `deploy/logs.sh`。
+部署完成后，日常运维使用: 
+- `deploy/start.sh`
+- `deploy/stop.sh`
+- `deploy/restart.sh`
+- `deploy/status.sh`
+- `deploy/logs.sh`
 
 ### 文档
 
